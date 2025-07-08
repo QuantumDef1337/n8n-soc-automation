@@ -16,4 +16,11 @@ This repository provides **ready-to-use automation workflows** built with [n8n](
 
 > More use cases coming soon — contribute or watch this repo for updates!
 
+---
+## 🙌 Credit
+Developed by Mariskarthick - Senior Security Analyst. 
+
+You can reach me on Linkedin (https://www.linkedin.com/in/mariskarthickm/)
+---
+
 
