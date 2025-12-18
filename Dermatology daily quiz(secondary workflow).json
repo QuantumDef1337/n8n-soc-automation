@@ -1,0 +1,308 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -944,
+        1024
+      ],
+      "id": "c7df7a46-8382-4e0b-a8e6-24b41ea0eaaa",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Qf3yZKrzzR0LSOXm",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search the internet",
+        "method": "POST",
+        "url": "https://api.langsearch.com/v1/web-search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-d6e3a52f7e82323232310a92b2323223b1d3"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            },
+            {
+              "name": "freshness",
+              "value": "noLimit"
+            },
+            {
+              "name": "summary",
+              "value": "true"
+            },
+            {
+              "name": "count",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -784,
+        1024
+      ],
+      "id": "05372489-f67d-40a5-84db-209bd74c9602",
+      "name": "Search_tool"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "collection": "Quiz"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        800
+      ],
+      "id": "c5d66d84-1bed-4841-8eaa-b18711577e2b",
+      "name": "Delete documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "dnMANnZPTYaBXBET",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1360,
+        800
+      ],
+      "id": "15b75669-4493-48ab-98aa-e4f7be96a331",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "text": "=Dermatalogy quiz has shared to  successfully",
+        "additionalFields": {
+          "appendAttribution": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        800
+      ],
+      "id": "8ca178f2-4087-4c41-99d1-7478c750a3d9",
+      "name": "confirmation messeage",
+      "webhookId": "2ade1645-fe2a-4968-bfbe-e0607f638b67",
+      "credentials": {
+        "telegramApi": {
+          "id": "kb3ymxZjowjLNhLb",
+          "name": "Shadowark AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "Quiz",
+        "options": {},
+        "query": "{ }\n"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        -1136,
+        800
+      ],
+      "id": "8ffdc8ce-7303-45fa-ba0c-d473ca05f804",
+      "name": "Find Quiz documents",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "dnMANnZPTYaBXBET",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn {\n  json: {\n    question: parsed.question,\n    options: typeof parsed.options === 'string' \n      ? parsed.options.split(',').map(o => o.trim())\n      : parsed.options,\n    correct_index: parseInt(parsed.correct_index, 10)\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        800
+      ],
+      "id": "44d65d2e-8a62-45da-b224-93188db9b393",
+      "name": "Script"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert dermatology quiz generator for Telegram polls.\n\nTitle: {{$json.title}}\nSummary: {{$json.message}}\nLink: {{$json.link}}\n\nYou will receive one item per run with these fields:\n- title: title of a dermatology article\n- message: a short summary prepared from the article\n- link: URL to the full article\n\nRULES - READ CAREFULLY:\n\n1. TELEGRAM CONSTRAINTS (STRICT):\n   - Question: MAX 300 characters\n   - Each option: MAX 100 characters\n   - MUST write SHORT, CONCISE options\n\n2. RANDOMIZE CORRECT ANSWER:\n   - The correct answer must NOT always be in position 0\n   - You MUST randomly place the correct answer in position 0, 1, 2, or 3\n   - Vary the correct_index between quiz generations\n   - Good distributions: sometimes 0, sometimes 1, sometimes 2, sometimes 3\n   - NEVER put correct answer always in option[0]\n   - Randomize to make quiz fair and prevent pattern recognition\n\n3. CONTENT RULES:\n   - Create exactly one clinically meaningful MCQ\n   - Test understanding of a key point\n   - Only use information from the article\n   - Do not invent facts\n   - Provide exactly 4 answer options\n   - Only one option is clearly correct\n   - Other three must be plausible but incorrect\n\n4. OPTION LENGTH STRATEGY:\n   - Write options as SHORT statements (15-80 chars)\n   - Use simple language\n   - ✅ \"Inhibit inflammatory cytokines\" (28 chars)\n   - ❌ \"They are critical enzymes involved in maintaining tissue homeostasis...\" (75+ chars)\n\n5. RESPONSE FORMAT:\n   {\n     \"question\": \"string (max 300 chars)\",\n     \"options\": [\"string (max 100)\", \"string (max 100)\", \"string (max 100)\", \"string (max 100)\"],\n     \"correct_index\": 0, 1, 2, or 3 (RANDOMIZED)\n   }\n\n6. EXAMPLES OF RANDOMIZATION:\n   ✅ Quiz 1: correct_index = 2 (third option is correct)\n   ✅ Quiz 2: correct_index = 0 (first option is correct)\n   ✅ Quiz 3: correct_index = 3 (fourth option is correct)\n   ✅ Quiz 4: correct_index = 1 (second option is correct)\n   ❌ ALL quizzes: correct_index = 0 (WRONG - pattern too obvious)\n\nIf data incomplete, generate about most supported point.",
+        "options": {
+          "systemMessage": "You are an expert dermatology quiz generator.\n\nYou will receive one item per run with these fields:\n- title: title of a dermatology article\n- message: a short summary prepared from the article\n- link: URL to the full article\n\nRules:\n- First, conceptually assume you have read the full article at `link`. Only use information that could reasonably come from that article and the provided `message`.\n- Do not invent facts that are not supported by the article.\n- Create exactly one clinically meaningful multiple‑choice question (MCQ) that tests understanding of a key point from this article (aim, methodology, results, or clinical implications).\n- The question must be answerable using only the article’s content, not general dermatology knowledge.\n- Provide exactly 4 answer options. Only one option is clearly correct according to the article. The other three options must be plausible but incorrect or not supported by the article.\n- Do not mention the title, journal name or author names inside the question or options unless they are essential to the concept being tested.\n- If the data is too incomplete to generate a safe question based only on the article, return a question about the most solidly supported point (or, if impossible, make the question very high‑level and conservative).\n\nYou must respond ONLY as a single JSON object that matches this schema and nothing else:\n{\n  \"question\": \"string\",\n  \"options\": [\"string\", \"string\", \"string\", \"string\"],\n  \"correct_index\": 0\n}\n`correct_index` is the 0‑based index of the correct answer in the options array.\n\nReject “meta” questions that ask about the article itself (title, length, whether content is sufficient). Every question must test a factual concept from the article (e.g. role of MMPs in inflammatory dermatoses, key mechanisms, or clinical implications). If the input data is malformed or insufficient, return a JSON error object instead of guessing.\n",
+          "passthroughBinaryImages": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -912,
+        800
+      ],
+      "id": "1cc4350a-2c03-48ce-8b96-0643b7aefad0",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot761343432228:AAH_zOJ34342eJEEH9etaAXGzr343430/sendPoll",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"chat_id\": <ChatID>,\n  \"question\": \"{{ $json.question }}\",\n  \"options\": {{ JSON.stringify($json.options) }},\n  \"type\": \"quiz\",\n  \"correct_option_id\": {{ $json.correct_index }},\n  \"is_anonymous\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -336,
+        800
+      ],
+      "id": "2813282e-45e6-4b19-ba8d-9c860e17dbea",
+      "name": "Quiz1"
+    }
+  ],
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete documents": {
+      "main": [
+        [
+          {
+            "node": "confirmation messeage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Find Quiz documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Quiz documents": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script": {
+      "main": [
+        [
+          {
+            "node": "Quiz1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz1": {
+      "main": [
+        [
+          {
+            "node": "Delete documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "04efa85563ff59ae71f7bc1e4ed9a086a69f4130298a28a588ae58f08407702b"
+  }
+}
