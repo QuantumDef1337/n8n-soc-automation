@@ -1,0 +1,464 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        224
+      ],
+      "id": "3a3407f3-41c6-4448-9588-338b15ec3bcb",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -688,
+        224
+      ],
+      "id": "b1b6155e-042c-4732-a21a-12c474552113",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        16
+      ],
+      "id": "7f90ee25-2c71-47c9-a7cf-027dcbf59cd9"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Task:\nAnalyze the abstract and return a valid JSON object.\n\nJournal: Extract from source or title metadata. If missing, infer from content context or write \"Dermatology Journal\".\n\nAim: If not explicit, infer it from the first sentence (e.g., \"To review advancements in...\" or \"To evaluate efficacy of...\").\n\nEligibility: If it's a review/lab study (like 3D microneedles), write \"N/A (Review/Pre-clinical study)\" instead of \"Not specified\".\n\nKey Findings: Summarize the main results or discussion points (e.g., \"3D printing allows precise microneedle fabrication\", \"Overcomes poor skin penetration\").\n\nClinical Takeaway: Write a one-sentence practical implication (e.g., \"Promising technology for delivering drugs in psoriasis/acne.\").\n\nConflict of Interest: If not stated, write \"Not stated in abstract\".\n\nRequired JSON Output Format:\n{\n  \"title\": \"{{ $json.title }}\",\n  \"journal\": \"{{ $json.source || 'AAPS PharmSciTech' }}\",\n  \"published\": \"{{ $json.pubDate }}\",\n  \"conflict_of_interest\": \"Not stated in abstract\",\n  \"aim_of_study\": \"To review the advancements in 3D printed microneedles for personalized skin therapeutics.\",\n  \"eligibility_criteria\": \"N/A (Review Article)\",\n  \"key_findings\": \"- 3D printing enables precise microneedle fabrication.\\n- Overcomes poor skin penetration of topicals.\\n- Potential for treating psoriasis, alopecia, and acne.\",\n  \"clinical_takeaway\": \"3D printed microneedles offer a novel, personalized approach for difficult-to-treat skin conditions.\",\n  \"link\": \"{{ $json.link }}\",\n  \"Author\" : {{ $json.creator }}\n  \"relevance_score\": 7\n}\n\n\nIMPORTANT: Return ONLY the raw JSON string. Do not use markdown blocks (```\n",
+        "options": {
+          "systemMessage": "=Role:\n\nYou are a Senior Dermatology Professor. Your task is to critically analyze this research abstract for a postgraduate resident. Even if details are scarce, you MUST extract the core message.\n\nInput Data:\n\nTitle: {{ $json.title }}\nContent/Abstract: {{ $json.contentSnippet }}\nLink: {{ $json.link }}\nPubDate: {{ $json.pubDate }}\nSource: {{ $json.source }}\nAuthor: {{ $json.creator }}\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -464,
+        224
+      ],
+      "id": "40e55566-9288-40d4-93a9-9f048347ed4a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -464,
+        448
+      ],
+      "id": "553e3971-9022-46ec-b2e7-33098cfb0e64",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Qf3yZKrzzR0LSOXm",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Loop Over Items').item.json.link }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        448
+      ],
+      "id": "6add4f20-abed-4842-a1ce-eedbf7f07c63",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 17
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1584,
+        224
+      ],
+      "id": "14fd34a6-89d5-44bd-a602-7b8ccf3604f1",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "url": "https://pubmed.ncbi.nlm.nih.gov/rss/search/1b3rDwkNa4BtNET9IQrFDe0IW3bM2iBEDoV4kdUULuTpZ7ds1s/?limit=100&utm_campaign=pubmed-2&fc=20251217201259",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -1360,
+        128
+      ],
+      "id": "34527759-78db-44e5-9460-936199f05d94",
+      "name": "RSS Read",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "title",
+              "field2": "title"
+            }
+          ]
+        },
+        "joinMode": "keepNonMatches",
+        "outputDataFrom": "input1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1136,
+        224
+      ],
+      "id": "5def0297-2482-4271-a42c-4fdd86ddcaae",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "Quiz",
+        "fields": "title,author,link,message,createdAt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        336,
+        224
+      ],
+      "id": "9bf60817-acf7-495c-b195-1189479e5533",
+      "name": "Quiz",
+      "credentials": {
+        "mongoDb": {
+          "id": "dnMANnZPTYaBXBET",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "Daily_News",
+        "fields": "title,author,link,message,createdAt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        336,
+        32
+      ],
+      "id": "f0ebfa17-4717-43ca-bc46-5a43638f16cc",
+      "name": "Article DB",
+      "credentials": {
+        "mongoDb": {
+          "id": "dnMANnZPTYaBXBET",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "=Daily_News",
+        "options": {},
+        "query": "{ }\n"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        -1360,
+        320
+      ],
+      "id": "6ffa94aa-0298-41d1-ba67-c2900d8035d9",
+      "name": "Verifying Article DB",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "dnMANnZPTYaBXBET",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "=Dermatalogy daily watch has been shared successfully",
+        "additionalFields": {
+          "appendAttribution": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        224
+      ],
+      "id": "2d29b423-a32b-4f72-8c64-391f0f21f212",
+      "name": "Maris - confirmation message",
+      "webhookId": "2ade1645-fe2a-4968-bfbe-e0607f638b67",
+      "credentials": {
+        "telegramApi": {
+          "id": "kb3ymxZjowjLNhLb",
+          "name": "Shadowark AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1) Find the LLM output (check all possible locations)\nconst rawItem = items[0].json;\nlet rawText = \"\";\n\nif (rawItem.text) {\n  rawText = rawItem.text;\n} else if (rawItem.response) {\n  rawText = rawItem.response;\n} else if (rawItem.output) {\n  rawText = rawItem.output;\n} else if (typeof rawItem === 'string') {\n  rawText = rawItem;\n} else {\n  // Last resort: check if the item itself IS the parsed object already\n  rawText = JSON.stringify(rawItem);\n}\n\n// 2) Parse the JSON using Regex (ignores markdown blocks)\nlet data = {};\ntry {\n  const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    data = JSON.parse(jsonMatch[0]);\n  } else {\n    data = JSON.parse(rawText);\n  }\n} catch (e) {\n  // If parsing fails, use the raw item as fallback (in case it was already JSON)\n  data = rawItem;\n}\n\n// 3) Safe fallbacks for missing fields\nconst title = data.title || rawItem.title || 'Article Title';\nconst journal = data.journal || 'Dermatology Journal';\nconst published = data.published || rawItem.pubDate || 'Recently published';\nconst coi = data.conflict_of_interest || 'None declared';\nconst aim = data.aim_of_study || 'Not specified in abstract';\nconst eligibility = data.eligibility_criteria || 'N/A';\nconst keyFindings = data.key_findings || 'See abstract';\nconst takeaway = data.clinical_takeaway || 'Read full article';\nconst link = data.link || rawItem.link || '#';\nconst author = data.Author || data.author || rawItem.creator || 'Not specified';\n\n\n// 4) Construct the Message\nconst message = `\n📄 **Daily Dermatology Journal Watch**\n\n**Title:** ${title}\n**Journal:** ${journal}\n**Published:** ${published}\n**Author:** ${author}\n\n🎯 **Aim of the Study:**\n${aim}\n\n👥 **Eligibility Criteria:**\n${eligibility}\n\n⚠️ **Conflict of Interest:**\n${coi}\n\n📊 **Key Findings:**\n${keyFindings}\n\n💡 **Clinical Takeaway:**\n${takeaway}\n\n🔗 **Link:** ${link}\n`.trim();\n\nreturn {\n  message,\n  title,\n  link,\n  author\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        224
+      ],
+      "id": "ba64b027-7c15-4703-ba57-4152a16c9ae2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      title: $json.title,\n      author: $json.author,\n      link: $json.link,\n      message: $json.message,\n      createdAt: new Date().toISOString()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        224
+      ],
+      "id": "ff7d65a4-c0e6-4b1b-a94d-4cd0b90748fc",
+      "name": "Derma - Code"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        416
+      ],
+      "id": "3cd6d64c-16c9-41a2-8d80-33e1fded8d3a",
+      "name": "Dr",
+      "webhookId": "4d07f845-3a93-43df-a486-04160aaa6eca",
+      "credentials": {
+        "telegramApi": {
+          "id": "kb3ymxZjowjLNhLb",
+          "name": "Shadowark AI"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Verifying Article DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quiz": {
+      "main": [
+        [
+          {
+            "node": "Maris - confirmation message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifying Article DB": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Derma - Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Derma - Code": {
+      "main": [
+        [
+          {
+            "node": "Article DB",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dr",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dr": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "04efa85563ff59ae71f7bc1e4ed9a086a69f4130298a28a588ae58f08407702b"
+  }
+}
